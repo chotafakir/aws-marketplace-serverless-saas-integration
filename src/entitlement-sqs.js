@@ -1,8 +1,8 @@
 const AWS = require('aws-sdk');
-
-const dynamodb = new AWS.DynamoDB({ apiVersion: '2012-08-10', region: 'us-east-1' });
+const { NewSubscribersTableName: newSubscribersTableName, AWS_REGION: aws_region } = process.env;
+// MarketplaceEntitlementService is instantianise only in the us-east-1 https://docs.aws.amazon.com/general/latest/gr/aws-marketplace.html#marketplaceentitlement
 const marketplaceEntitlementService = new AWS.MarketplaceEntitlementService({ apiVersion: '2017-01-11', region: 'us-east-1' });
-const { NewSubscribersTableName: newSubscribersTableName } = process.env;
+const dynamodb = new AWS.DynamoDB({ apiVersion: '2012-08-10', region: aws_region });
 
 exports.handler = async (event) => {
   await Promise.all(event.Records.map(async (record) => {
@@ -25,7 +25,8 @@ exports.handler = async (event) => {
 
       console.log('entitlementsResponse', entitlementsResponse);
 
-      const isExpired = new Date(entitlementsResponse.Entitlements[0].ExpirationDate) < new Date();
+      const isExpired = entitlementsResponse.hasOwnProperty("Entitlements") === false || entitlementsResponse.Entitlements.length === 0 || 
+        new Date(entitlementsResponse.Entitlements[0].ExpirationDate) < new Date();
 
       const dynamoDbParams = {
         TableName: newSubscribersTableName,
@@ -47,7 +48,5 @@ exports.handler = async (event) => {
       throw new Error(`Unhandled action - msg: ${JSON.stringify(record)}`);
     }
   }));
-
-
   return {};
 };

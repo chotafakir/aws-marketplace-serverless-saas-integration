@@ -1,9 +1,9 @@
 const AWS = require('aws-sdk');
-const ses = new AWS.SES({ region: "us-east-1" });
-const marketplacemetering = new AWS.MarketplaceMetering({ apiVersion: '2016-01-14', region: 'us-east-1' });
-const dynamodb = new AWS.DynamoDB({ apiVersion: '2012-08-10', region: 'us-east-1' });
-const sqs = new AWS.SQS({ apiVersion: '2012-11-05', region: 'us-east-1' });
-const { NewSubscribersTableName: newSubscribersTableName, EntitlementQueueUrl: entitlementQueueUrl, MarketplaceSellerEmail: marketplaceSellerEmail } = process.env;
+const { NewSubscribersTableName: newSubscribersTableName, EntitlementQueueUrl: entitlementQueueUrl, MarketplaceSellerEmail: marketplaceSellerEmail, AWS_REGION:aws_region } = process.env;
+const ses = new AWS.SES({ region: aws_region});
+const marketplacemetering = new AWS.MarketplaceMetering({ apiVersion: '2016-01-14', region: aws_region });
+const dynamodb = new AWS.DynamoDB({ apiVersion: '2012-08-10', region: aws_region });
+const sqs = new AWS.SQS({ apiVersion: '2012-11-05', region: aws_region });
 
 const lambdaResponse = (statusCode, body) => ({
   statusCode,
@@ -50,10 +50,11 @@ const setBuyerNotificationHandler = function (contactEmail) {
 
 exports.registerNewSubscriber = async (event) => {
   const {
+    // Accept form inputs from ../web/index.html
     regToken, companyName, contactPerson, contactPhone, contactEmail,
   } = JSON.parse(event.body);
 
-  // Validate the request
+  // Validate the request with form inputs from ../web/index.html
   if (regToken && companyName && contactPerson && contactPhone && contactEmail) {
     try {
       // Call resolveCustomer to validate the subscriber
@@ -70,6 +71,7 @@ exports.registerNewSubscriber = async (event) => {
 
       const datetime = new Date().getTime().toString();
 
+      // Write form inputs from ../web/index.html
       const dynamoDbParams = {
         TableName: newSubscribersTableName,
         Item: {
